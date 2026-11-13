@@ -33,8 +33,10 @@ var CFG = {
     minLen: 16,
     /* 本地保留最近多少条历史（存 $prefs） */
     historyLimit: 10,
-    /* 调试：把每次命中/未命中、上传结果写进 QX 日志 */
-    debug: false,
+    /* 调试日志：默认开。
+     * QX → 设置 → 调试 → 日志级别选「调试」，日志页就能看到 [QQFarm] 开头的行。
+     * 即使 QX 日志没开，每次的关键步骤也会存进 $prefs，用 qq-farm-log.js 可以弹出来看。 */
+    debug: true,
 
     /* ------------------------- 自动上传到面板 -------------------------
      * enabled 打开后：抓到时先用面板账号换 token，再 POST /api/accounts
@@ -52,8 +54,10 @@ var CFG = {
         /* qq = QQ小程序，wx = 微信小程序 */
         platform: 'qq'
     },
-    /* 单次上传最多等多久（毫秒），超时就先放行请求，避免把游戏握手拖死 */
-    uploadWaitMs: 4000
+    /* 单次上传最多等多久（毫秒）。登录 + 上传是两次串行请求，移动网络下
+     * 很容易超过 4 秒；超时太短会在 $done 放行后把请求掐掉，表现就是
+     * 「日志里啥也没有」。9 秒接近 QX 对单次脚本的上限。 */
+    uploadWaitMs: 9000
 };
 
 var KEY_LAST = 'qqfarm_code_last';
@@ -64,6 +68,10 @@ var KEY_VER = 'qqfarm_ver';
 var KEY_HISTORY = 'qqfarm_code_history';
 var KEY_TOKEN = 'qqfarm_panel_token';
 var KEY_UPLOADED = 'qqfarm_uploaded_code';
+var KEY_DEBUG = 'qqfarm_cfg_debug';
+var KEY_LOG = 'qqfarm_dbg_log';
+var KEY_LAST_ERROR = 'qqfarm_last_error';
+var KEY_LAST_RESULT = 'qqfarm_last_result';
 /* 旧版：一个 JSON 存全部配置（保留兼容，优先级最低） */
 var KEY_CFG = 'qqfarm_cfg';
 
@@ -80,15 +88,41 @@ var BOX_KEYS = {
     accountName: 'qqfarm_cfg_accountName',
     accountId: 'qqfarm_cfg_accountId',
     platform: 'qqfarm_cfg_platform',
-    notify: 'qqfarm_cfg_notify'
+    notify: 'qqfarm_cfg_notify',
+    debug: 'qqfarm_cfg_debug'
 };
 
 /* ----------------------------- 基础工具 ----------------------------- */
 
-function log(msg) {
+/* 日志：一条 line 同时进 QX 日志和本地环形缓冲。
+ * 缓冲不依赖 QX 的日志开关，qq-farm-log.js 能随时弹出来看。 */
+function pushLogLine(line) {
+    var list = [];
+    try {
+        var raw = $prefs.valueForKey(KEY_LOG);
+        if (raw) list = JSON.parse(String(raw)) || [];
+        if (!(list instanceof Array)) list = [];
+    } catch (e) {
+        list = [];
+    }
+    list.unshift(line);
+    if (list.length > 30) list = list.slice(0, 30);
+    try {
+        $prefs.setValueForKey(JSON.stringify(list), KEY_LOG);
+    } catch (e) {}
+}
+
+/* quiet=true 的日志只进 QX 日志，不写本地缓冲，避免高频未命中把缓冲刷满 */
+function log(msg, quiet) {
+    var line = timeText(Date.now()) + ' ' + msg;
+    if (!quiet) {
+        try {
+            pushLogLine(line);
+        } catch (e) {}
+    }
     if (!CFG.debug) return;
     try {
-        console.log('[QQFarm] ' + msg);
+        console.log('[QQFarm] ' + line);
     } catch (e) {}
 }
 
@@ -279,6 +313,8 @@ function loadPanelCfg() {
     if (boxPlatform !== '') p.platform = boxPlatform;
     var boxTarget = kvGet(BOX_KEYS.target);
     if (boxTarget !== '') p.mode = boxTarget === 'account' ? 'account' : 'name';
+    var boxDebug = kvGet(BOX_KEYS.debug);
+    if (boxDebug !== '') CFG.debug = boolOf(boxDebug, CFG.debug);
 
     /* 「指定账号」必须真有 id，否则退回按备注名，避免提交一个空 id 被服务端当新增 */
     if (p.mode === 'account' && !p.accountId) p.mode = 'name';
@@ -286,6 +322,19 @@ function loadPanelCfg() {
     /* 通知开关同样作用于上传结果提示 */
     CFG.notify = p.notify !== false;
     return p;
+}
+
+/* 配置快照，日志里只露密码长度，不落明文 */
+function describePanel(p) {
+    var pwd = p.password ? ('已填(' + p.password.length + '位)') : '未填';
+    var tk = kvGet(KEY_TOKEN) ? '有缓存' : '无';
+    return 'enabled=' + (p.enabled ? 'on' : 'off') +
+        ' baseUrl=' + (p.baseUrl || '(空)') +
+        ' user=' + (p.username || '(空)') +
+        ' pass=' + pwd + ' token=' + tk +
+        ' mode=' + p.mode + (p.accountId ? '/' + p.accountId : '') +
+        ' name=' + (p.accountName || '(空)') +
+        ' platform=' + p.platform + ' notify=' + (p.notify ? 'on' : 'off');
 }
 
 function apiRequest(baseUrl, path, payload, token) {
@@ -307,18 +356,27 @@ function loginPanel(panel) {
     if (!panel.password) {
         throw new Error('未配置面板密码');
     }
+    var started = Date.now();
+    log('登录 → POST ' + panel.baseUrl + '/api/login user=' + panel.username);
     return apiRequest(panel.baseUrl, '/api/login', {
         username: panel.username,
         password: panel.password
     }).then(function (resp) {
         var status = statusOf(resp);
         var body = parseJson(resp && resp.body);
+        var cost = Date.now() - started;
         if (status === 200 && body && body.ok && body.data && body.data.token) {
             kvSet(KEY_TOKEN, body.data.token);
-            log('面板登录成功');
+            log('登录成功 ' + status + ' ' + cost + 'ms token=' + String(body.data.token).slice(0, 8) + '…');
             return body.data.token;
         }
+        /* 面板对同 IP 有节流：每分钟 10 次，连续失败 5 次锁 15 分钟 */
         var msg = (body && body.error) || ('HTTP ' + status);
+        if (status === 423) msg = 'IP 被锁，稍后再试（' + msg + '）';
+        if (status === 429) msg = '请求太频繁（' + msg + '）';
+        if (status === 0) msg = '连不上面板，检查地址/端口/手机网络';
+        log('登录失败 ' + status + ' ' + cost + 'ms msg=' + msg);
+        kvSet(KEY_LAST_ERROR, timeText(Date.now()) + ' 登录失败: ' + msg + ' (HTTP ' + status + ')');
         throw new Error('登录失败: ' + msg);
     });
 }
@@ -338,11 +396,16 @@ function addAccount(panel, code, openID, token) {
     if (panel.mode === 'account' && panel.accountId) payload.id = String(panel.accountId);
     /* 服务端只认小写 openid（core/src/models/store/accounts.ts 的字段白名单） */
     if (openID) payload.openid = openID;
+    var started = Date.now();
+    log('上传 → POST ' + panel.baseUrl + '/api/accounts name=' + payload.name +
+        (payload.id ? ' id=' + payload.id : '') +
+        ' code=' + String(code).slice(0, 8) + '…' + (openID ? ' openid=' + String(openID).slice(-6) : ''));
     return apiRequest(panel.baseUrl, '/api/accounts', payload, token).then(function (resp) {
-        return {
-            status: statusOf(resp),
-            body: parseJson(resp && resp.body)
-        };
+        var status = statusOf(resp);
+        var body = parseJson(resp && resp.body);
+        var cost = Date.now() - started;
+        log('上传响应 ' + status + ' ' + cost + 'ms body=' + String((resp && resp.body) || '').slice(0, 200));
+        return { status: status, body: body };
     });
 }
 
@@ -362,47 +425,59 @@ function notifyUploadFail(code, reason) {
 
 function upload(code, openID) {
     var panel = loadPanelCfg();
-    if (!panel.enabled) return null;
+    log('配置 ' + describePanel(panel));
+    if (!panel.enabled) {
+        log('自动上传未开启（qqfarm_cfg_enabled），只通知');
+        return null;
+    }
     /* 同一条 code 只上传一次，QX 重启/重连也不会重复推 */
     if (kvGet(KEY_UPLOADED) === code) {
         log('该 code 已上传过，跳过');
         return null;
     }
     if (!panel.baseUrl) {
+        log('中止：未配置面板地址');
+        kvSet(KEY_LAST_ERROR, timeText(Date.now()) + ' 未配置面板地址');
         notifyUploadFail(code, '未配置面板地址');
         return null;
     }
     if (!panel.password && !kvGet(KEY_TOKEN)) {
+        log('中止：未配置面板密码');
+        kvSet(KEY_LAST_ERROR, timeText(Date.now()) + ' 未配置面板密码');
         notifyUploadFail(code, '未配置面板密码');
         return null;
     }
 
     var token = kvGet(KEY_TOKEN);
+    log(token ? '复用缓存 token' : '无缓存 token，先登录');
     var first = token ? addAccount(panel, code, openID, token)
         : loginPanel(panel).then(function (t) { return addAccount(panel, code, openID, t); });
 
     return first.then(function (res) {
         /* token 过期（服务重启/改密清空）时自动重登一次再试 */
         if (res && res.status === 401) {
-            log('token 失效，重新登录后重试');
+            log('token 失效(401)，重新登录后重试');
             return loginPanel(panel).then(function (t) { return addAccount(panel, code, openID, t); });
         }
         return res;
     }).then(function (res) {
         if (res && res.body && res.body.ok) {
             kvSet(KEY_UPLOADED, code);
+            kvSet(KEY_LAST_RESULT, timeText(Date.now()) + ' 上传成功 HTTP ' + res.status + ' · ' + panel.accountName);
+            log('上传成功，已记录');
             notifyUploadOk(panel, code);
-            log('上传成功');
             return res;
         }
         var reason = (res && res.body && (res.body.error || res.body.message)) || ('HTTP ' + (res ? res.status : 0));
-        notifyUploadFail(code, reason);
+        kvSet(KEY_LAST_ERROR, timeText(Date.now()) + ' 上传失败: ' + reason + ' (HTTP ' + (res ? res.status : 0) + ')');
         log('上传失败: ' + reason);
+        notifyUploadFail(code, reason);
         return res;
     }, function (err) {
         var reason = String((err && err.message) || err || '网络异常');
-        notifyUploadFail(code, reason);
+        kvSet(KEY_LAST_ERROR, timeText(Date.now()) + ' 上传异常: ' + reason);
         log('上传异常: ' + reason);
+        notifyUploadFail(code, reason);
         return null;
     });
 }
@@ -430,6 +505,11 @@ function main() {
     var openID = getParam(url, 'openID') || getParam(url, 'openid') || '';
     var ver = getParam(url, 'ver') || getParam(url, 'version') || '';
 
+    /* 每次触发都留一行：没抓到的时候，靠这行判断「脚本到底有没有跑」 */
+    log('触发 ' + (hasResponse ? 'response' : 'request') +
+        ' host=' + (host || '(无)') + ' gateway=' + gateway +
+        ' 参数code=' + (code ? '有' : '无'), true);
+
     if (!code && reqBody) {
         var fromReq = scanJson(reqBody);
         if (fromReq.code) {
@@ -446,7 +526,8 @@ function main() {
     }
 
     if (!isValidCode(code, gateway)) {
-        log('跳过 host=' + host + ' code=' + (code ? code.slice(0, 8) + '...' : '(空)'));
+        log('未命中 host=' + (host || '(无)') + ' gateway=' + gateway +
+            ' code=' + (code ? code.slice(0, 8) + '…' : '(空)'), true);
         return null;
     }
 
@@ -462,12 +543,13 @@ function main() {
     if (ver) kvSet(KEY_VER, ver);
 
     if (isDup) {
-        log('重复 code，仅更新落盘 host=' + host);
+        log('重复 code（' + Math.round((now - lastAt) / 1000) + 's 内），只更新落盘', true);
         return null;
     }
 
     pushHistory({ code: code, openID: openID, ver: ver, host: host, at: now });
-    log('命中 host=' + host + ' code=' + code + (openID ? ' openID=' + openID : ''));
+    log('抓到 code=' + code.slice(0, 8) + '… len=' + code.length +
+        (openID ? ' openid=' + openID.slice(-6) : '') + (ver ? ' ver=' + ver : '') + ' host=' + host);
 
     /* 开了自动上传就只发一条「已上传/失败」通知；没开才发「已捕获」 */
     if (!loadPanelCfg().enabled && CFG.notify) {
@@ -481,6 +563,7 @@ function main() {
     return upload(code, openID);
 }
 
+var startedAt = Date.now();
 var pending = main();
 
 /* 收尾：请求/响应原样放行，绝不改写。
@@ -491,6 +574,7 @@ var finished = false;
 function finish() {
     if (finished) return;
     finished = true;
+    log('放行请求，本次耗时 ' + (Date.now() - startedAt) + 'ms', true);
     try {
         $done({});
     } catch (e) {}
