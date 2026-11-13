@@ -1,0 +1,98 @@
+{
+  "id": "qqfarm.qx.capture",
+  "name": "QQ经典农场 · 抓码",
+  "author": "@qq-farm",
+  "repo": "",
+  "apps": [
+    {
+      "id": "qqfarm.qx.capture.settings",
+      "name": "QQ经典农场 · 抓码设置",
+      "author": "@qq-farm",
+      "desc": "配合 QX 脚本 qq-farm-code.js 使用：抓到 QQ 小程序登录 code 后，自动上传到面板并启动账号。保存即生效，不用改脚本、不用重启。",
+      "keys": [
+        "qqfarm_cfg_enabled",
+        "qqfarm_cfg_baseUrl",
+        "qqfarm_cfg_username",
+        "qqfarm_cfg_password",
+        "qqfarm_cfg_target",
+        "qqfarm_cfg_accountName",
+        "qqfarm_cfg_accountId",
+        "qqfarm_cfg_platform",
+        "qqfarm_cfg_notify"
+      ],
+      "settings": [
+        {
+          "id": "qqfarm_cfg_enabled",
+          "name": "抓到后自动上传",
+          "val": false,
+          "type": "boolean",
+          "desc": "关闭时只弹通知，code 需要手动复制到面板"
+        },
+        {
+          "id": "qqfarm_cfg_baseUrl",
+          "name": "面板地址",
+          "val": "http://1.95.33.60:3007",
+          "type": "text",
+          "desc": "以 http:// 或 https:// 开头，结尾不要带斜杠"
+        },
+        {
+          "id": "qqfarm_cfg_username",
+          "name": "管理员账号",
+          "val": "admin",
+          "type": "text",
+          "desc": "登录面板网页用的账号"
+        },
+        {
+          "id": "qqfarm_cfg_password",
+          "name": "管理员密码",
+          "val": "",
+          "type": "text",
+          "desc": "仅用于换 token。明文存在本机 QX 存储里，不会上传到别处"
+        },
+        {
+          "id": "qqfarm_cfg_target",
+          "name": "上传到",
+          "val": "name",
+          "type": "radios",
+          "items": [
+            { "key": "name", "label": "按备注名（同名覆盖 code，不存在则新建）" },
+            { "key": "account", "label": "指定已有账号（填下方的账号 ID）" }
+          ],
+          "desc": "推荐第一种：备注名对上就更新那个账号，对不上才新建"
+        },
+        {
+          "id": "qqfarm_cfg_accountName",
+          "name": "账号备注名",
+          "val": "QQ农场",
+          "type": "text",
+          "desc": "面板里同名账号会被当成重新登录：覆盖旧 code 并重启，不会重复建号"
+        },
+        {
+          "id": "qqfarm_cfg_accountId",
+          "name": "指定账号 ID（可选）",
+          "val": "",
+          "type": "text",
+          "desc": "仅「指定已有账号」时生效。填了就直接写回这个账号，忽略同名匹配"
+        },
+        {
+          "id": "qqfarm_cfg_platform",
+          "name": "平台",
+          "val": "qq",
+          "type": "radios",
+          "items": [
+            { "key": "qq", "label": "QQ 小程序" },
+            { "key": "wx", "label": "微信小程序" }
+          ],
+          "desc": "抓的是手机 QQ 的农场就选 QQ"
+        },
+        {
+          "id": "qqfarm_cfg_notify",
+          "name": "弹出通知",
+          "val": true,
+          "type": "boolean",
+          "desc": "关闭后抓取过程完全静默，只写日志"
+        }
+      ]
+    }
+  ]
+}
