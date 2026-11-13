@@ -32,7 +32,50 @@ var KEY_LAST_RESULT = 'qqfarm_last_result';
 var KEY_TOKEN = 'qqfarm_panel_token';
 var KEY_CODE = 'qqfarm_code';
 var KEY_LAST_AT = 'qqfarm_code_last_at';
+/* 与订阅里的 textarea 同名，诊断结论会写进去，BoxJs 里直接能看 */
+var KEY_LOG_VIEW = 'qqfarm_log_view';
+var KEY_TOUCH = 'qqfarm_last_touch';
 var SHOW_LOG = 8;
+
+function kvSet(k, v) {
+    try {
+        $prefs.setValueForKey(String(v), k);
+    } catch (e) {}
+}
+
+function readLogLines() {
+    var lines = [];
+    try {
+        lines = JSON.parse(kvGet(KEY_LOG) || '[]') || [];
+    } catch (e) {
+        lines = [];
+    }
+    if (!(lines instanceof Array)) lines = [];
+    return lines;
+}
+
+/* 把诊断结论 + 最近日志写回 BoxJs 的只读日志项 */
+function writeBoxView(verdict) {
+    var ok = kvGet(KEY_LAST_RESULT);
+    var bad = kvGet(KEY_LAST_ERROR);
+    var last = !ok ? bad : (!bad ? ok : (ok >= bad ? ok : bad));
+    var lines = readLogLines();
+
+    var out = [];
+    out.push('【诊断 ' + timeText(Date.now()) + '】' + verdict);
+    out.push('最近结果 ' + (last || '还没有上传记录'));
+    out.push('最后触发 ' + (kvGet(KEY_TOUCH) || '还没被触发过'));
+    out.push('-------------- 最近日志（新→旧） --------------');
+    if (!lines.length) {
+        out.push('（空：qq-farm-code.js 一次都没跑到，先查重写/MITM/证书）');
+    } else {
+        var n = lines.length > 20 ? 20 : lines.length;
+        for (var i = 0; i < n; i++) out.push(lines[i]);
+    }
+    var text = out.join('\n');
+    if (text.length > 1800) text = text.slice(0, 1800) + '\n…（已截断）';
+    kvSet(KEY_LOG_VIEW, text);
+}
 
 function kvGet(k) {
     try {
@@ -115,9 +158,11 @@ function done() {
 
 if (!cfg.baseUrl) {
     notify('登录自检', '跳过：没填面板地址', '先去 BoxJs 填 http://你的服务器IP:3007');
+    writeBoxView('未自检（没填面板地址）· 自动上传 ' + (cfg.enabled ? '开' : '关'));
     done();
 } else if (!cfg.password) {
     notify('登录自检', '跳过：没填密码', 'BoxJs 里「管理员密码」是空的，脚本无法登录换 token');
+    writeBoxView('未自检（没填面板密码）· 自动上传 ' + (cfg.enabled ? '开' : '关'));
     done();
 } else {
     var started = Date.now();
@@ -142,6 +187,7 @@ if (!cfg.baseUrl) {
                 'HTTP 200 · ' + cost + 'ms',
                 '面板地址、账号、密码都对，token 已拿到。\n' +
                 '如果抓包还是不灵，问题在 QX 重写/MITM 那一侧，或者根本没触发到网关域名。');
+            showTail('登录自检通过 HTTP 200 · ' + cost + 'ms · 自动上传 ' + (cfg.enabled ? '开' : '关'));
         } else {
             var msg = (body && body.error) || ('HTTP ' + status);
             var hint;
@@ -153,20 +199,21 @@ if (!cfg.baseUrl) {
             notify('登录自检 · 失败',
                 'HTTP ' + status + ' · ' + cost + 'ms',
                 msg + '\n\n' + hint);
+            showTail('登录自检失败 HTTP ' + status + ' · ' + msg);
         }
-        showTail(status === 200);
     }, function (err) {
+        var reason = String((err && err.message) || err);
         notify('登录自检 · 异常',
             '网络层就挂了',
-            String((err && err.message) || err) + '\n\n' +
+            reason + '\n\n' +
             '连不上 ' + cfg.baseUrl + '。先用手机浏览器打开这个地址看能不能出登录页。');
-        showTail(false);
+        showTail('登录自检异常 · ' + reason);
     });
 }
 
 /* ----------------------- 3. 最近结果 / 错误 / 日志 ----------------------- */
 
-function showTail(loginOk) {
+function showTail(verdict) {
     var result = kvGet(KEY_LAST_RESULT);
     var error = kvGet(KEY_LAST_ERROR);
     notify('上次结果',
@@ -175,13 +222,7 @@ function showTail(loginOk) {
         '失败：' + (error || '无')
     );
 
-    var lines = [];
-    try {
-        lines = JSON.parse(kvGet(KEY_LOG) || '[]') || [];
-    } catch (e) {
-        lines = [];
-    }
-    if (!(lines instanceof Array)) lines = [];
+    var lines = readLogLines();
 
     if (lines.length === 0) {
         notify('最近日志', '缓冲是空的',
@@ -191,7 +232,10 @@ function showTail(loginOk) {
         var head = lines.slice(0, SHOW_LOG).join('\n');
         notify('最近日志 ' + Math.min(SHOW_LOG, lines.length) + ' 条',
             '共 ' + lines.length + ' 条 · 新→旧',
-            head + (loginOk ? '' : '\n\n（QX 日志页能看到全部，含被截断的长行）'));
+            head + '\n\n（QX 日志页能看到全部，含被截断的长行）');
     }
+
+    /* 结论同时落到 BoxJs 的只读日志项，回头打开应用就能复查 */
+    writeBoxView(verdict || '已执行');
     done();
 }
