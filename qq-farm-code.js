@@ -479,6 +479,45 @@ function notifyUploadFail(code, reason) {
     } catch (e) {}
 }
 
+/* 自检通道：Safari 打开带 code=QXTEST 的网关地址时走这里（不上传）。
+ * 作用是把「脚本有没有在跑 / 配置读到没 / 缓冲里有什么」直接用通知弹出来，
+ * 不依赖 BoxJs 是否渲染那一栏，也不依赖 QX 的日志开关。
+ * 弹不出来 = 脚本压根没被触发（重写没启用 / MITM 没开 / 证书没信任）。 */
+function selfTestReport(code, host) {
+    var lines = [];
+    try {
+        var raw = $prefs.valueForKey(KEY_LOG);
+        if (raw) lines = JSON.parse(String(raw)) || [];
+    } catch (e) {
+        lines = [];
+    }
+    if (!(lines instanceof Array)) lines = [];
+
+    var panel = loadPanelCfg();
+    var cfgLine = 'enabled=' + (panel.enabled ? 'on' : 'off') +
+        '\nbaseUrl=' + (panel.baseUrl || '未填') +
+        '\nuser=' + (panel.username || '未填') +
+        '\npass=' + (panel.password ? '已填(' + panel.password.length + '位)' : '未填') +
+        '\nmode=' + panel.mode + ' name=' + (panel.accountName || '未填');
+
+    try {
+        $notify('QQ农场 自检 · 脚本在跑',
+            '命中 ' + (host || '(无域名)') + ' · 缓冲 ' + lines.length + ' 条',
+            '配置快照：\n' + cfgLine);
+    } catch (e) {}
+
+    var body = lines.length
+        ? lines.slice(0, 5).join('\n')
+        : '缓冲是空的：脚本能跑，但还没抓到过 code';
+    try {
+        $notify('QQ农场 自检 · 最近日志',
+            lines.length + ' 条（新→旧，最多显示 5 条）',
+            body);
+    } catch (e) {}
+
+    log('自检触发 host=' + (host || '(无)') + ' 缓冲=' + lines.length + ' 条');
+}
+
 function upload(code, openID) {
     var panel = loadPanelCfg();
     log('配置 ' + describePanel(panel));
@@ -579,6 +618,14 @@ function main() {
             code = fromResp.code;
             if (!openID) openID = fromResp.openID;
         }
+    }
+
+    /* 自检优先于一切校验：Safari 打开
+     * https://gate-obt.nqf.qq.com/prod/ws?platform=qq&ver=1.0.0_20260101&code=QXTEST-0000-1111-2222
+     * 就会弹两条通知，把脚本状态和日志直接给你，不上传、不改动任何存储里的配置。 */
+    if (code && code.indexOf('QXTEST') === 0) {
+        selfTestReport(code, host);
+        return null;
     }
 
     if (!isValidCode(code, gateway)) {
