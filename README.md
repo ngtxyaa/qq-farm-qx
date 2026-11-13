@@ -59,6 +59,49 @@ https://gate-obt.nqf.qq.com/prod/ws?platform=qq&ver=1.0.0_20260101&code=QXTEST-0
 
 弹通知且正文是那串 → 链路通。没弹 → 重写没生效、MITM 没开或证书没信任，跟 QQ 无关。
 
+## 开了自动上传没反应，先看日志
+
+脚本默认**全链路打日志**，每一步都留痕。三个地方可看，任选：
+
+**1. QX 日志页（最全）**
+
+设置 → 调试 → 日志级别选「调试」，然后 首页 → 日志。关注 `[QQFarm]` 开头的行，一次正常上传长这样：
+
+```
+[QQFarm] 16:20:31 触发 request host=gate-obt.nqf.qq.com gateway=true 参数code=有
+[QQFarm] 16:20:31 抓到 code=a1b2c3d4… len=32 openid=…f3a2 ver=3.2.1_20261113 host=gate-obt.nqf.qq.com
+[QQFarm] 16:20:31 配置 enabled=on baseUrl=http://…:3007 user=admin pass=已填(8位) token=无 mode=name name=QQ农场 platform=qq notify=on
+[QQFarm] 16:20:31 无缓存 token，先登录
+[QQFarm] 16:20:32 登录 → POST http://…:3007/api/login user=admin
+[QQFarm] 16:20:32 登录成功 200 380ms token=9f2c1a8e…
+[QQFarm] 16:20:32 上传 → POST http://…:3007/api/accounts name=QQ农场 code=a1b2c3d4…
+[QQFarm] 16:20:33 上传响应 200 720ms body={"ok":true,"data":{…}}
+[QQFarm] 16:20:33 上传成功，已记录
+```
+
+看这几行就够定位：
+
+| 看到什么 | 说明问题在哪 |
+|---|---|
+| 一条 `[QQFarm]` 都没有 | 脚本没跑起来：远程重写没启用 / MITM 没开 / 证书没信任 |
+| 只有「触发」没有「抓到」 | 命中的不是网关域名，或 code 没在 URL 里 |
+| `配置 enabled=off` | BoxJs 里总开关没打开，或没点保存 |
+| `pass=未填` | 密码空着，或 BoxJs 没保存 |
+| `登录失败 401` | 账号密码不对；注意首尾空格，连续错 5 次锁 15 分钟 |
+| `登录失败 423` | 手机出口 IP 被面板锁了，等 15 分钟 |
+| `登录失败 0` | 连不上面板：地址/端口错、手机网络不通、服务没跑 |
+| `上传响应 4xx …error` | body 里就是服务端给的原话 |
+
+**2. 一条命令弹出来（不用进 QX 日志页）**
+
+把 `qq-farm-check.js` 加到 `[task_local]`，手动运行，会连弹几条通知：当前配置、面板登录自检结果、上次成功/失败、最近 8 条日志。适合在外面排查。
+
+**3. 面板侧反证**
+
+登录面板 → 账号日志。脚本上传成功时这里会多一条「通过备注重新登录账号」。没有这条 → 请求根本没到服务端。
+
+> 日志里的 code 只露前 8 位，openID 只露后 6 位，密码只露位数，不会把可用的凭据写进日志。
+
 ## code 从哪来
 
 QQ 小程序里 `qq.login()` 拿到 code 后，客户端把它拼在游戏网关的 WebSocket 地址上：
@@ -75,7 +118,8 @@ wss://gate-obt.nqf.qq.com/prod/ws?platform=qq&os=ios&ver=<版本>_<日期>&code=
 |---|---|
 | `qqfarm.rewrite.conf` | QX 远程重写（含 MITM 域名与脚本地址） |
 | `qqfarm.boxjs.json` | BoxJs 订阅：配置表单 |
-| `qq-farm-code.js` | 抓取主脚本 |
+| `qq-farm-code.js` | 抓取主脚本（抓 code + 自动上传 + 全程日志） |
+| `qq-farm-check.js` | 一键诊断：配置、登录自检、上次结果、最近日志 |
 | `qq-farm-code-show.js` | 回看最近抓到的 code（可选定时任务） |
 
 ## 配置项
@@ -92,6 +136,7 @@ BoxJs 表单里的九项，存在 QX 的 `$prefs`，脚本每次触发时读：
 | `qqfarm_cfg_accountId` | 指定账号 ID，留空自动退回按备注名 |
 | `qqfarm_cfg_platform` | `qq` ／ `wx` |
 | `qqfarm_cfg_notify` | 是否弹通知 |
+| `qqfarm_cfg_debug` | 是否写详细日志，默认开 |
 
 优先级：BoxJs 设置页 > 旧版 `qqfarm_cfg` JSON > 脚本里 `CFG.panel`。
 
@@ -112,8 +157,11 @@ BoxJs 表单里的九项，存在 QX 的 `$prefs`，脚本每次触发时读：
 
 ## 更新脚本
 
-改完脚本直接提交到 `main` 即可。QX 会按自己的周期同步远程重写，BoxJs 订阅需手动
-点一下刷新。若走 jsDelivr 镜像，要等缓存过期（几分钟）。
+改完脚本直接提交到 `main`。**QX 不会立刻用新版**——它对远程资源有缓存，要手动踢一下：
+
+设置 → 重写 → 引用 → 找到「QQ农场」这条 → 左滑或点进详情 → **更新**（有的版本是关掉开关再打开）。BoxJs 订阅同理，下拉刷新一次。
+
+没更新的典型现象：改了脚本但日志内容完全没变，或者还是老版本的提示语。若走 jsDelivr 镜像，还要再等几分钟缓存过期。
 
 ## 地址拉不动怎么办
 
