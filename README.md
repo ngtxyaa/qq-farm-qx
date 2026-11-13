@@ -206,13 +206,13 @@ curl -sL https://github.com/ngtxyaa/qq-farm-qx/raw/refs/heads/main/qq-farm-code.
 
 ## 地址拉不动怎么办
 
-`raw.githubusercontent.com` 在国内部分网络下会超时。QX 里可以先确认这条域名走的是代理，
-或者把两处地址换成 jsDelivr 镜像：
+`raw.githubusercontent.com` 在国内部分网络下会超时，表现为订阅加不上、或者重写更新后脚本没变化。
 
-```
-https://cdn.jsdelivr.net/gh/ngtxyaa/qq-farm-qx@main/qqfarm.rewrite.conf
-https://cdn.jsdelivr.net/gh/ngtxyaa/qq-farm-qx@main/qqfarm.boxjs.json
-```
+三个办法，按顺序试：
 
-镜像有缓存，改完脚本要等几分钟才生效；调试阶段建议仍用 raw。
+1. **让 QX 代理这条域名**：QX 的分流规则里确保 `raw.githubusercontent.com` 和 `github.com` 走代理，然后重开一次 QX。
+2. **换网络拉一次**：切到能访问的手机网络或 Wi-Fi，重新更新重写资源；拉成功一次后 QX 会缓存到本地。
+3. **换订阅地址的写法**：把 `raw.githubusercontent.com/<用户>/<仓库>/main/<文件>` 换成 `github.com/<用户>/<仓库>/raw/refs/heads/main/<文件>`，两者指向同一份文件，但走的是不同线路，哪条通就用哪条。
+
+拉成功后的校验办法：浏览器打开脚本地址，看开头注释里有没有 `selfTestReport` —— 有就是新版。
 
