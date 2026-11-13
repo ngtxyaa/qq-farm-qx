@@ -31,9 +31,9 @@
         {
           "id": "qqfarm_cfg_baseUrl",
           "name": "面板地址",
-          "val": "http://1.95.33.60:3007",
+          "val": "",
           "type": "text",
-          "desc": "以 http:// 或 https:// 开头，结尾不要带斜杠"
+          "desc": "填你自己的面板地址，例：http://你的服务器IP:3007。以 http:// 或 https:// 开头，结尾不要带斜杠"
         },
         {
           "id": "qqfarm_cfg_username",
