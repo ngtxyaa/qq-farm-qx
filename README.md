@@ -163,7 +163,7 @@ wss://gate-obt.nqf.qq.com/prod/ws?platform=qq&os=ios&ver=<版本>_<日期>&code=
 | `qq-farm-code.js` | 旧文件名，内容停在上一版（没有版本标记），仅为兼容早期已配置的地址保留 |
 | `qq-farm-check.js` | 一键诊断：配置、登录自检、上次结果、最近日志 |
 | `qq-farm-code-show.js` | 回看最近抓到的 code（可选定时任务） |
-| `icon.svg` | BoxJs 订阅图标（128×128，QQ 蓝底白企鹅） |
+| `icon.svg` | BoxJs 订阅图标（128×128，深绿底 + 透视田垄 + 落日，纯矢量） |
 
 ## 配置项
 
