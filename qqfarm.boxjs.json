@@ -19,7 +19,9 @@
         "qqfarm_cfg_accountId",
         "qqfarm_cfg_platform",
         "qqfarm_cfg_notify",
-        "qqfarm_cfg_debug"
+        "qqfarm_cfg_debug",
+        "qqfarm_status",
+        "qqfarm_log_view"
       ],
       "settings": [
         {
@@ -98,7 +100,27 @@
           "name": "调试日志",
           "val": true,
           "type": "boolean",
-          "desc": "把每一步写进 QX 日志（设置 → 调试 → 日志级别选「调试」）。关掉后本地缓冲仍保留最近 30 条，可用 qq-farm-check.js 弹出"
+          "desc": "把每一步同时写进 QX 日志（设置 → 调试 → 日志级别选「调试」）。关掉只是不在 QX 日志页打印，下面两项照样能看到"
+        },
+        {
+          "id": "qqfarm_status",
+          "name": "最近一次结果",
+          "val": "",
+          "type": "text",
+          "desc": "只读，脚本每次抓码后自动覆盖。这里还是空的 = 脚本一次都没跑成功过"
+        },
+        {
+          "id": "qqfarm_log_view",
+          "name": "运行日志（只读）",
+          "val": "",
+          "type": "textarea",
+          "desc": "脚本每次抓码自动刷新。看到的内容是旧的时候，退出本页再进一次即可。别手动改，改了也会被下次抓码覆盖"
+        }
+      ],
+      "descs": [
+        {
+          "title": "日志怎么看",
+          "body": "上面「最近一次结果」一行就是结论；「运行日志」里是新→旧的完整流水，含最后的触发行、登录耗时、上传响应体。\n\n顺序：最近结果（有没有成功）→ 最后触发（脚本到底跑没跑）→ 日志（卡在哪一步）。\n\n一条都没有：QX 重写没启用 / MITM 没开 / 证书没信任，脚本压根没被调用。\n有触发但没抓到：code 不在 URL 里，去 QX 日志页看「未命中」那行。\n抓到但上传失败：看日志里 HTTP 状态码，401 是密码、0 是连不上面板。"
         }
       ]
     }
