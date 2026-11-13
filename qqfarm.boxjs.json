@@ -21,6 +21,10 @@
         "qqfarm_cfg_notify",
         "qqfarm_cfg_debug",
         "qqfarm_status",
+        "qqfarm_last_touch",
+        "qqfarm_log_1",
+        "qqfarm_log_2",
+        "qqfarm_log_3",
         "qqfarm_log_view"
       ],
       "settings": [
@@ -110,11 +114,39 @@
           "desc": "只读，脚本每次抓码后自动覆盖。这里还是空的 = 脚本一次都没跑成功过"
         },
         {
+          "id": "qqfarm_last_touch",
+          "name": "最后触发",
+          "val": "",
+          "type": "text",
+          "desc": "脚本被调用的时间 + 命中域名 + 是否抓到 code。一直显示「还没被触发过」= 重写没生效或 MITM 没开"
+        },
+        {
+          "id": "qqfarm_log_1",
+          "name": "日志 1（最新）",
+          "val": "",
+          "type": "text",
+          "desc": "新→旧，第 1 条就是最后发生的事。只读"
+        },
+        {
+          "id": "qqfarm_log_2",
+          "name": "日志 2",
+          "val": "",
+          "type": "text",
+          "desc": "只读"
+        },
+        {
+          "id": "qqfarm_log_3",
+          "name": "日志 3",
+          "val": "",
+          "type": "text",
+          "desc": "只读"
+        },
+        {
           "id": "qqfarm_log_view",
-          "name": "运行日志（只读）",
+          "name": "运行日志全文（只读）",
           "val": "",
           "type": "textarea",
-          "desc": "脚本每次抓码自动刷新。看到的内容是旧的时候，退出本页再进一次即可。别手动改，改了也会被下次抓码覆盖"
+          "desc": "最近 20 条完整流水。若这一栏空白但上面「日志 1/2/3」有内容，说明这个版本不支持多行框，看上面三条即可"
         }
       ],
       "descs": [
