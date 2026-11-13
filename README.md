@@ -38,6 +38,10 @@ https://raw.githubusercontent.com/ngtxyaa/qq-farm-qx/main/qqfarm.boxjs.json
 
 改完即生效，不用重启 QX、不用重装脚本。
 
+> 订阅卡片上的图标来自仓库里的 `icon.svg`（订阅级 `icon` 字段）。如果图标是灰底字母占位，
+> 说明 BoxJs 缓存了旧的订阅文件：在订阅列表里左滑这一条 → 更新，或者删掉重新添加。
+> 图标只影响显示，跟抓码、上传无关。
+
 ### 3. QX 开三件事
 
 设置 → 重写 **打开** ／ MITM → 生成证书 → 安装到 iOS ／ 设置 → 通用 → 关于本机 →
@@ -159,6 +163,7 @@ wss://gate-obt.nqf.qq.com/prod/ws?platform=qq&os=ios&ver=<版本>_<日期>&code=
 | `qq-farm-code.js` | 旧文件名，内容停在上一版（没有版本标记），仅为兼容早期已配置的地址保留 |
 | `qq-farm-check.js` | 一键诊断：配置、登录自检、上次结果、最近日志 |
 | `qq-farm-code-show.js` | 回看最近抓到的 code（可选定时任务） |
+| `icon.svg` | BoxJs 订阅图标（128×128，QQ 蓝底白企鹅） |
 
 ## 配置项
 
