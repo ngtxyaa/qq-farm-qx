@@ -2,26 +2,29 @@
   <title>QQ经典农场</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0.00" stop-color="#9BE87E"/>
-      <stop offset="0.42" stop-color="#5EC85C"/>
-      <stop offset="1.00" stop-color="#2A863A"/>
+      <stop offset="0" stop-color="#175B3C"/>
+      <stop offset="1" stop-color="#0A2C1E"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.2656" cy="0.1406" r="0.7031" gradientUnits="objectBoundingBox">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.2"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
     <clipPath id="clip">
-      <rect width="128" height="128" rx="26" ry="26"/>
+      <rect width="128" height="128" rx="28" ry="28"/>
     </clipPath>
   </defs>
-  <rect width="128" height="128" rx="26" ry="26" fill="url(#bg)"/>
+  <rect width="128" height="128" rx="28" ry="28" fill="url(#bg)"/>
   <g clip-path="url(#clip)">
-    <rect width="128" height="128" fill="url(#glow)"/>
-    <circle cx="95" cy="97" r="16" fill="#FFD85E" opacity="0.95"/>
-    <path d="M 0 98 C 34 86 72 86 100 100 L 128 108 L 128 128 L 0 128 Z" fill="#FFFFFF" opacity="0.13"/>
-    <path d="M 0 112 C 28 101 70 101 96 112 L 128 121 L 128 128 L 0 128 Z" fill="#0E4A22" opacity="0.2"/>
-    <rect x="59.5" y="76" width="9" height="32" rx="4.5" ry="4.5" fill="#FFFFFF"/>
-    <path d="M 64 78 C 66 60 76 47 97 41 C 99 63 86 80 64 78 Z" fill="#FFFFFF"/>
-    <path d="M 64 78 C 62 60 52 47 31 41 C 29 63 42 80 64 78 Z" fill="#FFFFFF"/>
+    <circle cx="97" cy="32" r="13.5" fill="#FFC24D" opacity="1"/>
+    <path d="M 0 57 L 128 57 L 128 140 L 0 140 Z" fill="#062016" opacity="1"/>
+    <path d="M -42 140 L -33.5 140 L 59.61 57 L 59.23 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M -23 140 L -14.5 140 L 60.47 57 L 60.09 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M -4 140 L 4.5 140 L 61.32 57 L 60.94 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 15 140 L 23.5 140 L 62.18 57 L 61.8 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 34 140 L 42.5 140 L 63.03 57 L 62.65 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 53 140 L 61.5 140 L 63.89 57 L 63.51 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 72 140 L 80.5 140 L 64.74 57 L 64.36 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 91 140 L 99.5 140 L 65.6 57 L 65.22 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 110 140 L 118.5 140 L 66.45 57 L 66.07 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 129 140 L 137.5 140 L 67.31 57 L 66.92 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 148 140 L 156.5 140 L 68.16 57 L 67.78 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 167 140 L 175.5 140 L 69.02 57 L 68.64 57 Z" fill="#C6EE63" opacity="1"/>
+    <path d="M 186 140 L 194.5 140 L 69.87 57 L 69.49 57 Z" fill="#C6EE63" opacity="1"/>
   </g>
 </svg>
