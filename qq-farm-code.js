@@ -77,6 +77,11 @@ var KEY_LAST_RESULT = 'qqfarm_last_result';
  * 打开 BoxJs 应用就能看到结论和日志，不用去 QX 的日志页翻。 */
 var KEY_STATUS = 'qqfarm_status';
 var KEY_LOG_VIEW = 'qqfarm_log_view';
+/* 单行版镜像：BoxJs 的 textarea 在个别版本上不渲染值，
+ * 这里额外把前 3 条各写一个 text 项，保证任何版本都能看到。 */
+var KEY_LOG_1 = 'qqfarm_log_1';
+var KEY_LOG_2 = 'qqfarm_log_2';
+var KEY_LOG_3 = 'qqfarm_log_3';
 var KEY_TOUCH = 'qqfarm_last_touch';
 var KEY_TOUCH_AT = 'qqfarm_last_touch_at';
 /* 旧版：一个 JSON 存全部配置（保留兼容，优先级最低） */
@@ -155,6 +160,11 @@ function renderLogView(list) {
     var text = out.join('\n');
     if (text.length > 1800) text = text.slice(0, 1800) + '\n…（已截断）';
     kvSet(KEY_LOG_VIEW, text);
+
+    /* 单行镜像：每条独立落一个键，单行文本框一定能显示 */
+    kvSet(KEY_LOG_1, lines[0] || '');
+    kvSet(KEY_LOG_2, lines[1] || '');
+    kvSet(KEY_LOG_3, lines[2] || '');
 }
 
 /* 记下「脚本被触发过」。未命中时 5 秒内不重复写盘，避免网关心跳把存储写爆；
@@ -494,6 +504,11 @@ function selfTestReport(code, host) {
     if (!(lines instanceof Array)) lines = [];
 
     var panel = loadPanelCfg();
+    /* 自检也算一次"被触发"，让 BoxJs 里的「最后触发」能立刻反映出来 */
+    kvSet(KEY_TOUCH_AT, Date.now());
+    kvSet(KEY_TOUCH, timeText(Date.now()) + ' ' + (host || '(无域名)') + ' 抓到=是（自检）');
+    renderLogView(lines);
+
     var cfgLine = 'enabled=' + (panel.enabled ? 'on' : 'off') +
         '\nbaseUrl=' + (panel.baseUrl || '未填') +
         '\nuser=' + (panel.username || '未填') +
