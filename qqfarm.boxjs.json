@@ -2,12 +2,16 @@
   "id": "qqfarm.qx.capture",
   "name": "QQ经典农场 · 抓码",
   "author": "@qq-farm",
+  "icon": "https://raw.githubusercontent.com/ngtxyaa/qq-farm-qx/main/icon.svg",
   "repo": "",
   "apps": [
     {
       "id": "qqfarm.qx.capture.settings",
       "name": "QQ经典农场 · 抓码设置",
       "author": "@qq-farm",
+      "icons": [
+        "https://raw.githubusercontent.com/ngtxyaa/qq-farm-qx/main/icon.svg"
+      ],
       "desc": "配合 QX 脚本 qq-farm-code.js 使用：抓到 QQ 小程序登录 code 后，自动上传到面板并启动账号。保存即生效，不用改脚本、不用重启。",
       "keys": [
         "qqfarm_cfg_enabled",
