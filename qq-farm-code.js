@@ -42,8 +42,8 @@ var CFG = {
      */
     panel: {
         enabled: false,
-        /* 面板地址，别带结尾斜杠 */
-        baseUrl: 'http://1.95.33.60:3007',
+        /* 面板地址，别带结尾斜杠。留空表示只能在 BoxJs 里填 */
+        baseUrl: '',
         /* 面板管理员账号（就是登录网页的那套） */
         username: 'admin',
         password: '',
@@ -366,6 +366,10 @@ function upload(code, openID) {
     /* 同一条 code 只上传一次，QX 重启/重连也不会重复推 */
     if (kvGet(KEY_UPLOADED) === code) {
         log('该 code 已上传过，跳过');
+        return null;
+    }
+    if (!panel.baseUrl) {
+        notifyUploadFail(code, '未配置面板地址');
         return null;
     }
     if (!panel.password && !kvGet(KEY_TOKEN)) {
