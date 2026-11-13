@@ -72,6 +72,12 @@ var KEY_DEBUG = 'qqfarm_cfg_debug';
 var KEY_LOG = 'qqfarm_dbg_log';
 var KEY_LAST_ERROR = 'qqfarm_last_error';
 var KEY_LAST_RESULT = 'qqfarm_last_result';
+/* 下面三个是给 BoxJs 看的：订阅里 qq-farm.boxjs.json 把它们做成只读文本项，
+ * 打开 BoxJs 应用就能看到结论和日志，不用去 QX 的日志页翻。 */
+var KEY_STATUS = 'qqfarm_status';
+var KEY_LOG_VIEW = 'qqfarm_log_view';
+var KEY_TOUCH = 'qqfarm_last_touch';
+var KEY_TOUCH_AT = 'qqfarm_last_touch_at';
 /* 旧版：一个 JSON 存全部配置（保留兼容，优先级最低） */
 var KEY_CFG = 'qqfarm_cfg';
 
@@ -110,6 +116,55 @@ function pushLogLine(line) {
     try {
         $prefs.setValueForKey(JSON.stringify(list), KEY_LOG);
     } catch (e) {}
+    renderLogView(list);
+}
+
+/* 把「结论 + 最近日志」渲染成一段纯文本，写进 qqfarm_log_view。
+ * BoxJs 订阅里这一项是 textarea（只读展示），手机上打开应用即可看到，
+ * 不必再去 QX → 日志 里翻。每次写缓冲都会顺带刷新一次。 */
+function renderLogView(list) {
+    var lines = list;
+    if (!(lines instanceof Array)) {
+        lines = [];
+        try {
+            lines = JSON.parse(kvGet(KEY_LOG) || '[]') || [];
+        } catch (e) {
+            lines = [];
+        }
+        if (!(lines instanceof Array)) lines = [];
+    }
+
+    /* 成功/失败两串都以 "MM-DD HH:mm:ss" 开头，同一年内字典序即时间序 */
+    var ok = kvGet(KEY_LAST_RESULT);
+    var bad = kvGet(KEY_LAST_ERROR);
+    var last = !ok ? bad : (!bad ? ok : (ok >= bad ? ok : bad));
+    kvSet(KEY_STATUS, last || '还没有上传记录');
+
+    var out = [];
+    out.push('最近结果 ' + (last || '还没有上传记录'));
+    out.push('最后触发 ' + (kvGet(KEY_TOUCH) || '还没被触发过'));
+    out.push('-------------- 最近日志（新→旧） --------------');
+    if (!lines.length) {
+        out.push('（空：脚本还没抓到过任何 code）');
+    } else {
+        var n = lines.length > 20 ? 20 : lines.length;
+        for (var i = 0; i < n; i++) out.push(lines[i]);
+    }
+
+    var text = out.join('\n');
+    if (text.length > 1800) text = text.slice(0, 1800) + '\n…（已截断）';
+    kvSet(KEY_LOG_VIEW, text);
+}
+
+/* 记下「脚本被触发过」。未命中时 5 秒内不重复写盘，避免网关心跳把存储写爆；
+ * 命中时一定写，这样 BoxJs 里的「最后触发」永远反映最新一次真实抓取。 */
+function markTouch(host, hit) {
+    var now = Date.now();
+    var last = parseInt(kvGet(KEY_TOUCH_AT), 10) || 0;
+    if (!hit && now - last < 5000) return;
+    kvSet(KEY_TOUCH_AT, now);
+    kvSet(KEY_TOUCH, timeText(now) + ' ' + (host || '(无域名)') + ' 抓到=' + (hit ? '是' : '否'));
+    renderLogView();
 }
 
 /* quiet=true 的日志只进 QX 日志，不写本地缓冲，避免高频未命中把缓冲刷满 */
@@ -526,10 +581,12 @@ function main() {
     }
 
     if (!isValidCode(code, gateway)) {
+        markTouch(host, false);
         log('未命中 host=' + (host || '(无)') + ' gateway=' + gateway +
             ' code=' + (code ? code.slice(0, 8) + '…' : '(空)'), true);
         return null;
     }
+    markTouch(host, true);
 
     var now = Date.now();
     var lastCode = kvGet(KEY_LAST);
