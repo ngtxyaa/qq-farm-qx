@@ -29,7 +29,7 @@ BoxJs →「应用」→「添加订阅」，粘贴：
 https://raw.githubusercontent.com/ngtxyaa/qq-farm-qx/main/qqfarm.boxjs.json
 ```
 
-打开「QQ经典农场 · 抓码设置」，填面板地址、管理员账号、密码，打开「抓到后自动上传」，保存。
+打开「QQ经典农场 · 抓码设置」，填面板地址（例 `http://你的服务器IP:3007`）、管理员账号、密码，打开「抓到后自动上传」，保存。
 
 改完即生效，不用重启 QX、不用重装脚本。
 
@@ -85,7 +85,7 @@ BoxJs 表单里的九项，存在 QX 的 `$prefs`，脚本每次触发时读：
 | 键 | 说明 |
 |---|---|
 | `qqfarm_cfg_enabled` | 抓到后自动上传的总开关 |
-| `qqfarm_cfg_baseUrl` | 面板地址，如 `http://1.95.33.60:3007` |
+| `qqfarm_cfg_baseUrl` | 面板地址，例 `http://你的服务器IP:3007`（默认留空，需自己填） |
 | `qqfarm_cfg_username` / `qqfarm_cfg_password` | 面板管理员账号密码 |
 | `qqfarm_cfg_target` | `name` 按备注名 ／ `account` 指定账号 |
 | `qqfarm_cfg_accountName` | 账号备注名，同名覆盖 code 并重启，不重复建号 |
@@ -101,6 +101,7 @@ BoxJs 表单里的九项，存在 QX 的 `$prefs`，脚本每次触发时读：
 |---|---|
 | 抓不到，日志里没有 `[QQFarm]` | 远程重写没生效：确认已开启该资源、MITM 已开、证书已信任 |
 | 有 `[QQFarm] 跳过` | 命中了但 URL 里没 code，把脚本里 `CFG.debug` 置 `true` 看具体 url |
+| 上传失败：未配置面板地址 | BoxJs 里「面板地址」空着，填 `http://你的服务器IP:3007` 后保存 |
 | 上传失败：未配置面板密码 | BoxJs 里密码没填或没保存 |
 | 上传失败：登录失败 | 面板密码错，或 IP 被限流（每分钟 10 次、连续失败 5 次锁 15 分钟） |
 | 一个请求都看不到 | QQ 若对网关做证书固定，QX 无法解密，改用面板自带的抓包代理 |
@@ -125,3 +126,4 @@ https://cdn.jsdelivr.net/gh/ngtxyaa/qq-farm-qx@main/qqfarm.boxjs.json
 ```
 
 镜像有缓存，改完脚本要等几分钟才生效；调试阶段建议仍用 raw。
+
