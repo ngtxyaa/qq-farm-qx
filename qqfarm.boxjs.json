@@ -18,7 +18,8 @@
         "qqfarm_cfg_accountName",
         "qqfarm_cfg_accountId",
         "qqfarm_cfg_platform",
-        "qqfarm_cfg_notify"
+        "qqfarm_cfg_notify",
+        "qqfarm_cfg_debug"
       ],
       "settings": [
         {
@@ -91,6 +92,13 @@
           "val": true,
           "type": "boolean",
           "desc": "关闭后抓取过程完全静默，只写日志"
+        },
+        {
+          "id": "qqfarm_cfg_debug",
+          "name": "调试日志",
+          "val": true,
+          "type": "boolean",
+          "desc": "把每一步写进 QX 日志（设置 → 调试 → 日志级别选「调试」）。关掉后本地缓冲仍保留最近 30 条，可用 qq-farm-check.js 弹出"
         }
       ]
     }
