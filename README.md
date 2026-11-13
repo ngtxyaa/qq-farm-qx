@@ -63,7 +63,7 @@ https://gate-obt.nqf.qq.com/prod/ws?platform=qq&ver=1.0.0_20260101&code=QXTEST-0
 
 ## 开了自动上传没反应，先看日志
 
-脚本默认**全链路打日志**，每一步都留痕。四个地方可看：
+脚本默认**全链路打日志**，每一步都留痕。看日志有几条路，**第 1 条就够用**：
 
 **1. BoxJs 里直接看（最省事，不用开 QX）**
 
@@ -93,23 +93,11 @@ BoxJs →「应用」→ 打开「QQ经典农场 · 抓码设置」，表单最�
 
 > 这两项是**只读展示**，脚本每次抓码自动覆盖。手动改动会被下一次抓码冲掉，不用管它。
 
-**2. QX 日志页（最全）**
+**2. 脚本在 QX 里的输出（可选，一般用不到）**
 
-设置 → 调试 → 日志级别选「调试」，然后 首页 → 日志。关注 `[QQFarm]` 开头的行，一次正常上传长这样：
+脚本另外还会 `console.log` 一份，位置在 QX **设置页最下面那一组**里——新版叫「调试记录」，旧版叫「调试」，各版本叫法和位置不完全一样，找不到也不影响排查：**日志以 BoxJs 里那两项为准**，内容完全一样。
 
-```
-[QQFarm] 16:20:31 触发 request host=gate-obt.nqf.qq.com gateway=true 参数code=有
-[QQFarm] 16:20:31 抓到 code=a1b2c3d4… len=32 openid=…f3a2 ver=3.2.1_20261113 host=gate-obt.nqf.qq.com
-[QQFarm] 16:20:31 配置 enabled=on baseUrl=http://…:3007 user=admin pass=已填(8位) token=无 mode=name name=QQ农场 platform=qq notify=on
-[QQFarm] 16:20:31 无缓存 token，先登录
-[QQFarm] 16:20:32 登录 → POST http://…:3007/api/login user=admin
-[QQFarm] 16:20:32 登录成功 200 380ms token=9f2c1a8e…
-[QQFarm] 16:20:32 上传 → POST http://…:3007/api/accounts name=QQ农场 code=a1b2c3d4…
-[QQFarm] 16:20:33 上传响应 200 720ms body={"ok":true,"data":{…}}
-[QQFarm] 16:20:33 上传成功，已记录
-```
-
-看这几行就够定位：
+对照下面这张表定位（BoxJs 流水与 QX 日志格式一致）：
 
 | 看到什么 | 说明问题在哪 |
 |---|---|
