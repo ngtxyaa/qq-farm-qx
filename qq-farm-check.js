@@ -15,6 +15,7 @@
  */
 
 var BOX_KEYS = {
+    capture: 'qqfarm_cfg_capture',
     enabled: 'qqfarm_cfg_enabled',
     baseUrl: 'qqfarm_cfg_baseUrl',
     username: 'qqfarm_cfg_username',
@@ -114,6 +115,11 @@ function notify(title, sub, body) {
 /* ---------------------------- 1. 配置快照 ---------------------------- */
 
 var cfg = {
+    /* 键不存在（从没设置过）按「开」算，与主脚本 captureEnabled() 的默认值保持一致 */
+    capture: (function () {
+        var v = kvGet(BOX_KEYS.capture);
+        return v === '' ? true : boolOf(v);
+    })(),
     enabled: boolOf(kvGet(BOX_KEYS.enabled)),
     baseUrl: kvGet(BOX_KEYS.baseUrl).replace(/\/+$/, ''),
     username: kvGet(BOX_KEYS.username),
@@ -139,7 +145,9 @@ if (!cfg.password) {
 }
 
 notify('配置',
-    '自动上传 ' + (cfg.enabled ? '开' : '关 ✗') + ' · 地址 ' + (cfg.baseUrl || '空 ✗'),
+    '抓包 ' + (cfg.capture ? '开' : '关 ✗') + ' · 自动上传 ' + (cfg.enabled ? '开' : '关 ✗') + ' · 地址 ' + (cfg.baseUrl || '空 ✗'),
+    '抓包开关：' + (cfg.capture ? '开（正在抓）' : '关（已暂停，进小程序不会有任何反应）') + '\n' +
+    '抓包状态：' + (kvGet('qqfarm_capture_state') || '(空)') + '\n' +
     '面板地址：' + (cfg.baseUrl || '(空)') + '\n' +
     '管理员：' + (cfg.username || '(空)') + '\n' +
     '密码：' + pwdDesc + '\n' +
